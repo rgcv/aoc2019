@@ -1,64 +1,73 @@
+# interface implementation makes a Program's memory appear 0-indexed
+# i.e. Program(memory)[0] == memory[1]
+mutable struct Program
+    memory::Vector{Int}
+    pc::Int
+    Program(memory::Vector{Int}) = new(copy(memory), 0)
+end
+Base.first(p::Program) = first(p.memory)
+Base.getindex(p::Program, i::Int) = p.memory[i + 1]
+Base.setindex!(p::Program, v::Int, i::Int) = p.memory[i + 1] = v
+Base.setindex!(p::Program, vs, inds) = (foreach(i->p[i] = vs[i], inds); vs)
+
 abstract type AbstractInstruction end
+Base.size(I::Type{<:AbstractInstruction}) = fieldcount(I)
+Base.size(i::AbstractInstruction) = size(typeof(i))
+
+execute!(::Program, ::AbstractInstruction) = nothing
+
+run!(p::Program, i::AbstractInstruction) = (execute!(p, i); p.pc += size(i) + 1; p)
 
 struct HaltInstruction <: AbstractInstruction end
-struct NopInstruction <: AbstractInstruction end
 
-mutable struct MulInstruction <: AbstractInstruction
+struct MulInstruction <: AbstractInstruction
     a::Int
     b::Int
-    o::Int
-    MulInstruction() = new()
+    c::Int
 end
+execute!(p::Program, mul::MulInstruction) = p[mul.c] = mul.a * mul.b
 
-mutable struct SumInstruction <: AbstractInstruction
+struct SumInstruction <: AbstractInstruction
     a::Int
     b::Int
-    o::Int
-    SumInstruction() = new()
+    c::Int
 end
+execute!(p::Program, sum::SumInstruction) = p[sum.c] = sum.a + sum.b
 
-size(::AbstractInstruction) = 1
-execute!(program, ::AbstractInstruction) = nothing
+itype(p::Program)  = itype(p[p.pc])
+itype(opcode::Int) = itype(Val(opcode))
 
-size(::MulInstruction) = 4
-execute!(program, mul::MulInstruction) = program[mul.o] = mul.a * mul.b
+itype(::Val{ N}) where N = error("Unknown instruction: opcode=$N")
+itype(::Val{ 1})         = SumInstruction
+itype(::Val{ 2})         = MulInstruction
+itype(::Val{99})         = HaltInstruction
 
-size(::SumInstruction) = 4
-execute!(program, sum::SumInstruction) = program[sum.o] = sum.a + sum.b
-
-instruction(opcode::Int)            = instruction(Val(opcode))
-instruction(opcode::Val{N}) where N = NopInstruction()
-
-instruction(opcode::Val{ 1}) = SumInstruction()
-instruction(opcode::Val{ 2}) = MulInstruction()
-instruction(opcode::Val{99}) = HaltInstruction()
-
-parse!(program, ip, ::AbstractInstruction) = nothing
-function parse!(program, ip, i::Union{MulInstruction,SumInstruction})
-    i.a = program[program[ip + 1] + 1]
-    i.b = program[program[ip + 2] + 1]
-    i.o = program[ip + 3] + 1
-end
-
-intcode!(program, ip = 1) =
-    let i = instruction(program[ip])
-        parse!(program, ip, i)
-        execute!(program, i)
-        i isa HaltInstruction ? first(program) : intcode!(program, ip + size(i))
+Base.parse(I::Type{<:AbstractInstruction}, ::Program) = I()
+Base.parse(I::Union{Type{MulInstruction},Type{SumInstruction}}, p::Program) =
+    let a = p[p[p.pc + 1]],
+        b = p[p[p.pc + 2]],
+        c = p[p.pc + 3]
+        I(a, b, c)
     end
 
-prepare!(program, noun, verb) = (program[2:3] = [noun, verb]; program)
-restore1202!(program) = prepare!(program, 12, 2)
+intcode!(p::Program) =
+    let i = parse(itype(p), p)
+        run!(p, i)
+        (i isa HaltInstruction ? first : intcode!)(p)
+    end
+
+prepare!(p::Program, noun, verb) = (p[1:2] = [noun, verb]; p)
 
 const input = parse.(Int, split(read("day02.txt", String), ','))
 
+restore1202!(p::Program) = prepare!(p, 12, 2)
 println("""--- Part One ---
-           Result: $(intcode!(restore1202!(copy(input))))""")
+           Result: $(intcode!(restore1202!(Program(input))))""")
 
 println()
 
 for noun in 0:99, verb in 0:99
-    if intcode!(prepare!(copy(input), noun, verb)) == 19690720
+    if intcode!(prepare!(Program(input), noun, verb)) == 19690720
         println("""--- Part Two ---
                    Result: $(100 * noun + verb)""")
         break
