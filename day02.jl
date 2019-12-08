@@ -1,23 +1,66 @@
+abstract type AbstractInstruction end
+
+struct HaltInstruction <: AbstractInstruction end
+struct NopInstruction <: AbstractInstruction end
+
+mutable struct MulInstruction <: AbstractInstruction
+    a::Int
+    b::Int
+    o::Int
+    MulInstruction() = new()
+end
+
+mutable struct SumInstruction <: AbstractInstruction
+    a::Int
+    b::Int
+    o::Int
+    SumInstruction() = new()
+end
+
+size(::AbstractInstruction) = 1
+execute!(program, ::AbstractInstruction) = nothing
+
+size(::MulInstruction) = 4
+execute!(program, mul::MulInstruction) = program[mul.o] = mul.a * mul.b
+
+size(::SumInstruction) = 4
+execute!(program, sum::SumInstruction) = program[sum.o] = sum.a + sum.b
+
+instruction(opcode::Int)            = instruction(Val(opcode))
+instruction(opcode::Val{N}) where N = NopInstruction()
+
+instruction(opcode::Val{ 1}) = SumInstruction()
+instruction(opcode::Val{ 2}) = MulInstruction()
+instruction(opcode::Val{99}) = HaltInstruction()
+
+parse!(program, ip, ::AbstractInstruction) = nothing
+function parse!(program, ip, i::Union{MulInstruction,SumInstruction})
+    i.a = program[program[ip + 1] + 1]
+    i.b = program[program[ip + 2] + 1]
+    i.o = program[ip + 3] + 1
+end
+
+intcode!(program, ip = 1) =
+    let i = instruction(program[ip])
+        parse!(program, ip, i)
+        execute!(program, i)
+        i isa HaltInstruction ? first(program) : intcode!(program, ip + size(i))
+    end
+
+prepare!(program, noun, verb) = (program[2:3] = [noun, verb]; program)
+restore1202!(program) = prepare!(program, 12, 2)
+
 const input = parse.(Int, split(read("day02.txt", String), ','))
-
-op(opcode) = get([+, *], opcode, (xs...) -> nothing)
-process!(program, opcode, a, b, pos) =
-    let result = op(opcode)(a, b)
-        if !isnothing(result)
-            program[pos] = result
-        end
-        program
-    end
-intcode!(program, pos = 1) = pos > length(program) ? first(program) :
-    let opcode = program[pos]
-        opcode == 99 && return first(program)
-        a, b = map(p->program[p + 1], program[pos + 1:pos + 2])
-        newpos = program[pos + 3] + 1
-        process!(program, opcode, a, b, newpos)
-        return intcode!(program, pos + 4)
-    end
-
-restore1202!(program) = (program[2:3] = [12, 2]; program)
 
 println("""--- Part One ---
            Result: $(intcode!(restore1202!(copy(input))))""")
+
+println()
+
+for noun in 0:99, verb in 0:99
+    if intcode!(prepare!(copy(input), noun, verb)) == 19690720
+        println("""--- Part Two ---
+                Result: $(100 * noun + verb)""")
+        break
+    end
+end
