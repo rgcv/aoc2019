@@ -60,7 +60,7 @@ println()
 for noun in 0:99, verb in 0:99
     if intcode!(prepare!(copy(input), noun, verb)) == 19690720
         println("""--- Part Two ---
-                Result: $(100 * noun + verb)""")
+                   Result: $(100 * noun + verb)""")
         break
     end
 end
