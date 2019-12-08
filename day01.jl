@@ -1,6 +1,17 @@
 const modules = parse.(Int, split(read("day01.txt", String)))
 
 fuel(m) = m ÷ 3 - 2
+requirements(f) = mapreduce(f, +, input)
 
 println("""--- Part One ---
-           Fuel requirements: $(map(fuel, modules) |> sum)""")
+           Fuel requirements: $(requirements(fuel))""")
+
+println()
+
+totalfuel(m) = m ≤ zero(m) ? -m :
+               let f = fuel(m)
+                   f + totalfuel(f)
+               end
+
+println("""--- Part Two ---
+           Fuel requirements: $(requirements(totalfuel))""")
