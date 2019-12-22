@@ -1,4 +1,4 @@
-const modules = parse.(Int, split(read("day01.txt", String)))
+const modules = parse.(Int, split(read("input.txt", String)))
 
 fuel(m) = m ÷ 3 - 2
 requirements(f) = mapreduce(f, +, input)

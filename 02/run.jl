@@ -1,6 +1,6 @@
-include("intcode.jl")
+include("../intcode.jl")
 
-const input = parse.(Int, split(read("day02.txt", String), ','))
+const input = parse.(Int, split(read("input.txt", String), ','))
 
 prepare!(p::Program, noun, verb) = (p[1:2] = [noun, verb]; p)
 restore1202!(p::Program) = prepare!(p, 12, 2)
