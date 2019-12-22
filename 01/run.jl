@@ -1,7 +1,7 @@
-const modules = parse.(Int, split(read("input.txt", String)))
+const modules = parse.(Int, split(read(joinpath(@__DIR__, "input.txt"), String)))
 
 fuel(m) = m ÷ 3 - 2
-requirements(f) = mapreduce(f, +, input)
+requirements(f) = mapreduce(f, +, modules)
 
 println("""--- Part One ---
            Fuel requirements: $(requirements(fuel))""")

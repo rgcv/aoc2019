@@ -76,7 +76,7 @@ convert_path(path, prev = ORIGIN) =
         vcat(prev, convert_path(path[2:end], next))
     end
 
-const paths = convert_path.(split.(split(read("input.txt", String)), ','))
+const paths = convert_path.(split.(split(read(joinpath(@__DIR__, "input.txt"), String)), ','))
 
 manhattan(x₁::Int, y₁::Int, x₂::Int, y₂::Int) = abs(x₂ - x₁) + abs(y₂ - y₁)
 manhattan(p::Point, q::Point) = manhattan(p.x, p.y, q.x, q.y)
