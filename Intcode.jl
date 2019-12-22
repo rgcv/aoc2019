@@ -1,3 +1,8 @@
+module Intcode
+
+export Program,
+       intcode!
+
 # interface implementation makes a Program's memory appear 0-indexed
 # i.e. Program(memory)[0] == memory[1]
 mutable struct Program
@@ -55,3 +60,5 @@ intcode!(p::Program) =
         run!(p, i)
         (i isa HaltInstruction ? first : intcode!)(p)
     end
+
+end # module Intcode

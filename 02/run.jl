@@ -1,4 +1,5 @@
-include("../intcode.jl")
+include("../Intcode.jl")
+using .Intcode
 
 const input = parse.(Int, split(read(joinpath(@__DIR__, "input.txt"), String), ','))
 
