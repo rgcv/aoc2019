@@ -1,82 +1,59 @@
-@enum Orientation begin
-    up = 1
-    left
-    down
-    right
-end
-Base.convert(::Type{Orientation}, c::Char) =
-    let ds = map(uppercase ∘ first ∘ string, instances(Orientation)),
-        i = findfirst(isequal(c), ds)
-        isnothing(i) && error("invalid direction: $c")
-        Orientation(i)
-    end
-Base.:-(o::Orientation) =
-    o == up   ? down  :
-    o == down ? up    :
-    o == left ? right :
-    #= right =# left
-
-struct Step
-    orientation::Orientation
-    magnitude::Int
-end
-Base.convert(::Type{Step}, s::AbstractString) =
-    let o = convert(Orientation, first(s)),
-        m = parse(Int, s[2:end])
-        Step(o, m)
-    end
-Base.:-(s::Step) = Step(-s.orientation, s.magnitude)
-
 struct Point
     x::Int
     y::Int
 end
 const ORIGIN = Point(0, 0)
-Base.getindex(p::Point, i::Int) = getfield(p, fieldname(typeof(p), i))
-Base.show(io::IO, p::Point) = print(io, "($(p.x), $(p.y))")
-Base.:+(p::Point) = p
-Base.:+(p::Point, s::Step) =
-    let o = s.orientation, m = s.magnitude
-        o == up   ? Point(p.x, p.y + m) :
-        o == down ? Point(p.x, p.y - m) :
-        o == left ? Point(p.x - m, p.y) :
-        #= right =# Point(p.x + m, p.y)
-    end
-Base.:-(p::Point, s::Step) = p + -s
-Base.:-(p::Point) = Point(-p.x, -p.y)
 
-struct Segment
-    source::Point
-    target::Point
+struct Vec
+    x::Int
+    y::Int
 end
-intersection(s::Segment, t::Segment) =
-    let x₁ = s.source.x, y₁ = s.source.y,
-        x₂ = s.target.x, y₂ = s.target.y,
-        x₃ = t.source.x, y₃ = t.source.y,
-        x₄ = t.target.x, y₄ = t.target.y,
-        Δx₂₁ = x₁ - x₂,  Δx₄₃ = x₃ - x₄,
-        Δy₂₁ = y₁ - y₂,  Δy₄₃ = y₃ - y₄,
-        denom = Δx₂₁*Δy₄₃ - Δy₂₁*Δx₄₃
+Base.abs(v::Vec) = v.x == 0 ? abs(v.y) :
+                   v.y == 0 ? abs(v.x) :
+                   Int(sqrt(v.x^2 + v.y^2))
+Base.convert(::Type{Vec}, s::AbstractString) =
+    let d = first(s), l = parse(Int, s[2:end])
+        d ∈ "RULD" || error("invalid direction: $d")
+        let v = d == 'R' ? Vec( 1,  0) :
+                d == 'U' ? Vec( 0,  1) :
+                d == 'L' ? Vec(-1,  0) :
+                #= 'D' =#  Vec( 0, -1)
+            l*v
+        end
+    end
+Base.:-(p::Point, q::Point) = Vec(p.x - q.x, p.y - q.y)
+Base.:+(p::Point, v::Vec) = Point(p.x + v.x, p.y + v.y)
 
-        denom == 0 && return nothing
-        let Δx₃₁ = x₁ - x₃, Δy₃₁ = y₁ - y₃,
-            t = (Δx₃₁*Δy₄₃ - Δy₃₁*Δx₄₃)/denom,
-            u = (Δy₂₁*Δx₃₁ - Δx₂₁*Δy₃₁)/denom
+const Loc = Union{Point,Vec}
+Base.show(io::IO, p::Loc) = print(io, (p.x, p.y))
+Base.:(==)(p::Loc, q::Loc) = (p.x, p.y) == (q.x, q.y)
+Base.:*(s::Int, p::Loc) = typeof(p)(s*p.x, s*p.y)
 
-            0 ≤ t ≤ 1 && 0 ≤ u ≤ 1 ?
-            Point(floor(x₁ - t*Δx₂₁), floor(y₁ - t*Δy₂₁)) : nothing
+intersection(p₁::Point, q₁::Point, p₂::Point, q₂::Point) =
+    (p₁, q₂) == (p₂, q₂) ? nothing : # we're interested in a point
+    let x₁ = p₁.x, y₁ = p₁.y,
+        x₂ = q₁.x, y₂ = q₁.y,
+        x₃ = p₂.x, y₃ = p₂.y,
+        x₄ = q₂.x, y₄ = q₂.y
+
+        if x₁ == x₂ # s vertical
+            y₁, y₂ = minmax(y₁, y₂)
+            x₃, x₄ = minmax(x₃, x₄)
+            if x₃ ≤ x₁ ≤ x₄ && y₁ ≤ y₃ ≤ y₂ Point(x₁, y₃) end
+        elseif x₃ == x₄ # t vertical
+            x₁, x₂ = minmax(x₁, x₂)
+            y₃, y₄ = minmax(y₃, y₄)
+            if x₁ ≤ x₃ ≤ x₂ && y₃ ≤ y₁ ≤ y₄ Point(x₃, y₁) end
         end
     end
 
-convert_path(path, prev = ORIGIN) =
-    if isempty(path)
-        Point[]
-    else
-        next = prev + convert(Step, first(path))
-        vcat(prev, convert_path(path[2:end], next))
+steps2path(path, prev = ORIGIN) =
+    isempty(path) ?  [prev] :
+    let next = prev + convert(Vec, first(path))
+        vcat(prev, steps2path(path[2:end], next))
     end
 
-const paths = convert_path.(split.(split(read(joinpath(@__DIR__, "input.txt"), String)), ','))
+const paths = steps2path.(split.(split(read(joinpath(@__DIR__, "input.txt"), String)), ','))
 
 manhattan(x₁::Int, y₁::Int, x₂::Int, y₂::Int) = abs(x₂ - x₁) + abs(y₂ - y₁)
 manhattan(p::Point, q::Point) = manhattan(p.x, p.y, q.x, q.y)
@@ -86,12 +63,11 @@ closest() =
         for i ∈ 1:length(paths[1]) - 1, j ∈ 1:length(paths[2]) - 1
             let (p₁, q₁) = paths[1][i:i + 1],
                 (p₂, q₂) = paths[2][j:j + 1],
-                (s₁, s₂) = Segment.((p₁, p₂), (q₁, q₂)),
-                t = intersection(s₁, s₂)
+                pᵢ = intersection(p₁, q₁, p₂, q₂)
 
-                !isnothing(t) && t ≠ ORIGIN || continue
-                if p == ORIGIN || manhattan(ORIGIN, t) ≤ manhattan(ORIGIN, p)
-                    p = t
+                !isnothing(pᵢ) && pᵢ ≠ ORIGIN || continue
+                if p == ORIGIN || manhattan(ORIGIN, pᵢ) ≤ manhattan(ORIGIN, p)
+                    p = pᵢ
                 end
             end
         end
@@ -100,3 +76,29 @@ closest() =
 
 println("""--- Part One ---
            Closest distance: $(manhattan(ORIGIN, closest()))""")
+
+fewest_steps() =
+    let steps = Inf, sᵢ = 0, sⱼ = 0
+        for i ∈ 1:length(paths[1]) - 1
+            p₁, q₁ = paths[1][i:i + 1]
+            sᵢ += abs(q₁ - p₁)
+            for j ∈ 1:length(paths[2]) - 1
+                p₂, q₂ = paths[2][j:j + 1]
+                sⱼ += abs(q₂ - p₂)
+
+                pᵢ = intersection(p₁, q₁, p₂, q₂)
+                !isnothing(pᵢ) && pᵢ ≠ ORIGIN || continue
+
+                sum = sᵢ - abs(q₁ - pᵢ) + sⱼ - abs(q₂ - pᵢ)
+                if sum < steps
+                    #= push!(visited, pᵢ) =#
+                    steps = sum
+                end
+            end
+            sⱼ = 0
+        end
+        steps
+    end
+
+println("""--- Part Two ---
+           Fewest combined step: $(fewest_steps())""")
