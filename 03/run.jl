@@ -58,27 +58,8 @@ const paths = steps2path.(split.(split(read(joinpath(@__DIR__, "input.txt"), Str
 manhattan(x₁::Int, y₁::Int, x₂::Int, y₂::Int) = abs(x₂ - x₁) + abs(y₂ - y₁)
 manhattan(p::Point, q::Point) = manhattan(p.x, p.y, q.x, q.y)
 
-closest() =
-    let p = ORIGIN
-        for i ∈ 1:length(paths[1]) - 1, j ∈ 1:length(paths[2]) - 1
-            let (p₁, q₁) = paths[1][i:i + 1],
-                (p₂, q₂) = paths[2][j:j + 1],
-                pᵢ = intersection(p₁, q₁, p₂, q₂)
-
-                !isnothing(pᵢ) && pᵢ ≠ ORIGIN || continue
-                if p == ORIGIN || manhattan(ORIGIN, pᵢ) ≤ manhattan(ORIGIN, p)
-                    p = pᵢ
-                end
-            end
-        end
-        p
-    end
-
-println("""--- Part One ---
-           Closest distance: $(manhattan(ORIGIN, closest()))""")
-
-fewest_steps() =
-    let steps = Inf, sᵢ = 0, sⱼ = 0
+wires() =
+    let dist = Inf, steps = Inf, sᵢ = 0, sⱼ = 0
         for i ∈ 1:length(paths[1]) - 1
             p₁, q₁ = paths[1][i:i + 1]
             sᵢ += abs(q₁ - p₁)
@@ -89,16 +70,20 @@ fewest_steps() =
                 pᵢ = intersection(p₁, q₁, p₂, q₂)
                 !isnothing(pᵢ) && pᵢ ≠ ORIGIN || continue
 
+                d = manhattan(ORIGIN, pᵢ)
+                if dist == Inf || d ≤ dist dist = d end
+
                 sum = sᵢ - abs(q₁ - pᵢ) + sⱼ - abs(q₂ - pᵢ)
-                if sum < steps
-                    #= push!(visited, pᵢ) =#
-                    steps = sum
-                end
+                if sum < steps steps = sum end
             end
             sⱼ = 0
         end
-        steps
+        dist, steps
     end
 
-println("""--- Part Two ---
-           Fewest combined step: $(fewest_steps())""")
+let (distance, steps) = wires()
+    println("""--- Part One ---
+               Closest distance: $(distance)""")
+    println("""--- Part Two ---
+               Fewest combined step: $(steps)""")
+end
