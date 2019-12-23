@@ -59,26 +59,28 @@ manhattan(x₁::Int, y₁::Int, x₂::Int, y₂::Int) = abs(x₂ - x₁) + abs(y
 manhattan(p::Point, q::Point) = manhattan(p.x, p.y, q.x, q.y)
 
 wires() =
-    let dist = Inf, steps = Inf, sᵢ = 0, sⱼ = 0
+    let distance = Inf, steps = Inf, sᵢ = 0, sⱼ = 0
         for i ∈ 1:length(paths[1]) - 1
-            p₁, q₁ = paths[1][i:i + 1]
-            sᵢ += abs(q₁ - p₁)
+            pᵢ, qᵢ = paths[1][i:i + 1]
+            sᵢ += abs(qᵢ - pᵢ)
+
             for j ∈ 1:length(paths[2]) - 1
-                p₂, q₂ = paths[2][j:j + 1]
-                sⱼ += abs(q₂ - p₂)
+                i == j == 1 && continue
+                pⱼ, qⱼ = paths[2][j:j + 1]
+                sⱼ += abs(qⱼ - pⱼ)
 
-                pᵢ = intersection(p₁, q₁, p₂, q₂)
-                !isnothing(pᵢ) && pᵢ ≠ ORIGIN || continue
+                pᵢⱼ = intersection(pᵢ, qᵢ, pⱼ, qⱼ)
+                if !isnothing(pᵢⱼ)
+                    d = manhattan(ORIGIN, pᵢⱼ)
+                    if d < distance distance = d end
 
-                d = manhattan(ORIGIN, pᵢ)
-                if dist == Inf || d ≤ dist dist = d end
-
-                sum = sᵢ - abs(q₁ - pᵢ) + sⱼ - abs(q₂ - pᵢ)
-                if sum < steps steps = sum end
+                    sum = sᵢ - abs(qᵢ - pᵢⱼ) + sⱼ - abs(qⱼ - pᵢⱼ)
+                    if sum < steps steps = sum end
+                end
             end
             sⱼ = 0
         end
-        dist, steps
+        distance, steps
     end
 
 let (distance, steps) = wires()
