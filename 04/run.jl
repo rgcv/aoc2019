@@ -1,6 +1,6 @@
 const range = UnitRange(parse.(Int, split("357253-892942", '-'))...)
 
-diffs(c) = [c[i + 1] - c[i] for i in 1:length(c) - 1]
+diffs(a) = [a[i + 1] - a[i] for i in 1:length(a) - 1]
 
 criteria(password::Int) = criteria(string(password))
 criteria(password::AbstractString) =
