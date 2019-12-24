@@ -30,7 +30,7 @@ Base.:(==)(p::Loc, q::Loc) = (p.x, p.y) == (q.x, q.y)
 Base.:*(s::Int, p::Loc) = typeof(p)(s*p.x, s*p.y)
 
 intersection(p₁::Point, q₁::Point, p₂::Point, q₂::Point) =
-    (p₁, q₂) == (p₂, q₂) ? nothing : # we're interested in a point
+    (p₁, q₁) == (p₂, q₂) ? nothing : # we're interested in a point
     let x₁ = p₁.x, y₁ = p₁.y,
         x₂ = q₁.x, y₂ = q₁.y,
         x₃ = p₂.x, y₃ = p₂.y,
