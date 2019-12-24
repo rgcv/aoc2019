@@ -1,6 +1,6 @@
 const range = UnitRange(parse.(Int, split("357253-892942", '-'))...)
 
-diffs(a) = [a[i + 1] - a[i] for i in 1:length(a) - 1]
+diffs(a) = [a[i + 1] - a[i] for i ∈ 1:length(a) - 1]
 
 has_double(password::AbstractString) = any(iszero, diffs(password))
 has_strict_double(password::AbstractString) =
