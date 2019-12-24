@@ -4,7 +4,7 @@ diffs(a) = [a[i + 1] - a[i] for i ∈ 1:length(a) - 1]
 
 has_double(password::AbstractString) = any(iszero, diffs(password))
 has_strict_double(password::AbstractString) =
-    any(isequal(2), map(length, findall(r"(?:(\d)\1*)", password)))
+    any(==(2), map(length, findall(r"(?:(\d)\1*)", password)))
 
 criteria(password::Int) = criteria(string(password))
 criteria(password::AbstractString) = criteria(has_double, password)
