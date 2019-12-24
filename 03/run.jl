@@ -10,7 +10,7 @@ struct Vec
 end
 Base.abs(v::Vec) = v.x == 0 ? abs(v.y) :
                    v.y == 0 ? abs(v.x) :
-                   Int(sqrt(v.x^2 + v.y^2))
+                   Int(√(v.x^2 + v.y^2))
 Base.convert(::Type{Vec}, s::AbstractString) =
     let d = first(s), l = parse(Int, s[2:end])
         d ∈ "RULD" || error("invalid direction: $d")
@@ -48,7 +48,7 @@ intersection(p₁::Point, q₁::Point, p₂::Point, q₂::Point) =
     end
 
 steps2path(path, prev = ORIGIN) =
-    isempty(path) ?  [prev] :
+    isempty(path) ? [prev] :
     let next = prev + convert(Vec, first(path))
         vcat(prev, steps2path(path[2:end], next))
     end
