@@ -81,7 +81,7 @@ Base.parse(p::Program, I::Type{<:AbstractInstruction}) =
         end...)
     end
 
-function intcode!(p::Program) =
+function intcode!(p::Program)
     while !((i = parse(p, itype(p))) isa HaltInstruction)
         run!(p, i)
     end
