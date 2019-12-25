@@ -95,12 +95,8 @@ itype(opcode::Int) =
     end
 
 Base.parse(p::Program, I::Type{<:AbstractInstruction}) =
-    let s = size(I),
-        ms = map(Mode, digits(p[p.pc] ÷ 100, pad = s))
-
-        I(map(1:s, ms) do i, mode
-              Parameter(p[p.pc + i], mode)
-        end...)
+    let s = size(I), ms = map(Mode, digits(p[p.pc] ÷ 100, pad = s))
+        I([Parameter(p[p.pc + i], mode) for (i, mode) ∈ zip(1:s, ms)]...)
     end
 
 function intcode!(p::Program)
