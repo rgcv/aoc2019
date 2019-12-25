@@ -1,7 +1,7 @@
 include("../Intcode.jl")
 using .Intcode
 
-const input = parse.(Int, split(read(joinpath(@__DIR__, "input.txt"), String), ','))
+const input = joinpath(@__DIR__, "input.txt")
 
 prepare!(p::Program, noun, verb) = (p[1:2] = [noun, verb]; p)
 restore1202!(p::Program) = prepare!(p, 12, 2)
