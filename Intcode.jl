@@ -33,8 +33,6 @@ end
 abstract type AbstractInstruction end
 Base.size(i::AbstractInstruction) = size(typeof(i))
 Base.size(I::Type{<:AbstractInstruction}) = fieldcount(I)
-Base.propertynames(I::Type{<:AbstractInstruction}) =
-    Tuple(Symbol('a' + c - 1) for c ∈ 1:fieldcount(I))
 
 exec!(::Program, ::AbstractInstruction) = nothing
 run!(p::Program, i::AbstractInstruction) = (exec!(p, i); p.pc += size(i) + 1; p)
