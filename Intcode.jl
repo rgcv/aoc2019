@@ -7,10 +7,11 @@ export Program,
 mutable struct Program
     pc::Int
     memory::Vector{Int}
+    isjump::Bool
     fin::Function
     fout::Function
 
-    Program(memory::Vector{Int}) = new(0, copy(memory), () -> 0, println)
+    Program(memory::Vector{Int}) = new(0, copy(memory), false, () -> 0, println)
 end
 Program(s::AbstractString) =
     Program(parse.(Int, split(isfile(s) ? read(s, String) : s, ',')))
@@ -30,12 +31,24 @@ Base.setindex!(p::Program, vs, inds) = (foreach(i->p[i] = vs[i], inds); vs)
     immediate
 end
 
+struct Parameter
+    val::Int
+    mode::Mode
+end
+(p::Parameter)() = p.val
+(p::Parameter)(prog::Program) = p.mode == position ? prog[p.val] : p.val
+
 abstract type AbstractInstruction end
 Base.size(i::AbstractInstruction) = size(typeof(i))
 Base.size(I::Type{<:AbstractInstruction}) = fieldcount(I)
 
 exec!(::Program, ::AbstractInstruction) = nothing
-run!(p::Program, i::AbstractInstruction) = (exec!(p, i); p.pc += size(i) + 1; p)
+function run!(p::Program, i::AbstractInstruction)
+    exec!(p, i)
+    p.pc += p.isjump ? 0 : size(i) + 1
+    p.isjump = false
+    p
+end
 
 const INSTRUCTIONS = IdDict{Int,Type{<:AbstractInstruction}}()
 macro instruction(name::Symbol, opcode::Int, size::Int = 0, expr = nothing)
@@ -49,19 +62,29 @@ macro instruction(name::Symbol, opcode::Int, size::Int = 0, expr = nothing)
     local sname = esc(name)
     quote
         struct $sname <: AbstractInstruction
-            $([:($(Symbol('a' + c - 1))::Int) for c in 1:size]...)
+            $([:($(Symbol('a' + c - 1))::Parameter) for c in 1:size]...)
         end
         $(esc(:exec!))($(esc(:p))::Program, $(esc(:i))::$sname) = $expr
         $INSTRUCTIONS[$opcode] = $sname
     end
 end
 
-@instruction SumInstruction     1 3 p[i.c] = i.a + i.b
-@instruction MulInstruction     2 3 p[i.c] = i.a * i.b
-@instruction InputInstruction   3 1 p[i.a] = p.fin()
-@instruction OutputInstruction  4 1 p.fout(p[i.a])
+@instruction SumInstruction     1 3 p[i.c()] = i.a(p) + i.b(p)
+@instruction MulInstruction     2 3 p[i.c()] = i.a(p) * i.b(p)
+@instruction InputInstruction   3 1 p[i.a()] = p.fin()
+@instruction OutputInstruction  4 1 p.fout(i.a(p))
 
-@instruction HaltInstruction   99
+@instruction JumpIfTrueInstruction  5 2 begin
+    if (p.isjump = !iszero(i.a(p))) p.pc = i.b(p) end
+end
+@instruction JumpIfFalseInstruction 6 2 begin
+    if (p.isjump =  iszero(i.a(p))) p.pc = i.b(p) end
+end
+
+@instruction LessThanInstruction 7 3 p[i.c()] = Int(i.a(p)  < i.b(p))
+@instruction EqualsInstruction   8 3 p[i.c()] = Int(i.a(p) == i.b(p))
+
+@instruction HaltInstruction 99
 
 itype(p::Program)  = itype(p[p.pc] % 100)
 itype(opcode::Int) =
@@ -76,8 +99,7 @@ Base.parse(p::Program, I::Type{<:AbstractInstruction}) =
         ms = map(Mode, digits(p[p.pc] ÷ 100, pad = s))
 
         I(map(1:s, ms) do i, mode
-              v = p[p.pc + i]
-              i ≠ s && mode == position ? p[v] : v
+              Parameter(p[p.pc + i], mode)
         end...)
     end
 
