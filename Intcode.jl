@@ -83,12 +83,11 @@ Base.parse(p::Program, I::Type{<:AbstractInstruction}) =
         end...)
     end
 
-intcode!(p::Program) =
-    let i
-        while !((i = parse(p, itype(p))) isa HaltInstruction)
-            run!(p, i)
-        end
-        first(p)
+function intcode!(p::Program) =
+    while !((i = parse(p, itype(p))) isa HaltInstruction)
+        run!(p, i)
     end
+    first(p)
+end
 
 end # module Intcode
